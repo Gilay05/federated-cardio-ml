@@ -30,7 +30,7 @@ H2_TEST_GLOBAL = f"{H2}/test_global_model"
 
 # Local central paths (central_server folder is the working dir for this file on Render)
 MODEL_PATH = "central_server/main_model.pkl"                # main baseline model stored in central_server folder
-DATA_PATH = "../cardiovascular_disease_dataset.csv"  # dataset at repo root
+DATA_PATH = "cardiovascular_disease_dataset.csv"  # dataset at repo root
 MAIN_V2_PATH = "main_model_v2.pkl"
 
 # ----------------------------
@@ -73,7 +73,7 @@ def baseline_metrics():
     return safe_metrics(model, X, y)
 
 # ----------------------------
-# Hospital 1 logic: follows your spec exactly
+# Hospital 1 logic: follows spec exactly
 #   - test on 1500
 #   - compare with baseline accuracy
 #   - if reduced -> retrain on hospital training -> test full 3000
