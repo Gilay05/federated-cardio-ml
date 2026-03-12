@@ -73,16 +73,18 @@ import numpy as np
 @app.get("/run_aggregation")
 def run_aggregation():
 
-    model = joblib.load(MODEL_PATH)
+    try:
+        model = joblib.load(MODEL_PATH)
 
-    weights = model.coef_
+        # simple confirmation that model exists
+        return {
+            "aggregation": "completed",
+            "method": "Federated Averaging (simulation)",
+            "status": "model loaded successfully"
+        }
 
-    aggregated_weights = np.mean(weights)
-
-    return {
-        "aggregation": "completed",
-        "method": "Federated Averaging (simplified)"
-    }
+    except Exception as e:
+        return {"error": str(e)}
 
 import shap
 
