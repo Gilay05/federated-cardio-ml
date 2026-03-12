@@ -4,8 +4,8 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score
 
 # Load dataset
-train = pd.read_csv("venv/data/set1_train.csv")
-test = pd.read_csv("venv/data/set1_test.csv")
+train = pd.read_csv("venv/central_server/set1_train.csv")
+test = pd.read_csv("venv/central_server/set1_test.csv")
 
 X_train = train.drop(columns=["cardio"])
 y_train = train["cardio"]

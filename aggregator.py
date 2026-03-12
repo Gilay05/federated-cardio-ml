@@ -17,7 +17,7 @@ federated_model = VotingClassifier(
 )
 
 # Train aggregator using Set1 training data
-train = pd.read_csv("venv/data/set1_train.csv")
+train = pd.read_csv("venv/central_server/set1_train.csv")
 
 X_train = train.drop(columns=["cardio"])
 y_train = train["cardio"]
@@ -25,7 +25,7 @@ y_train = train["cardio"]
 federated_model.fit(X_train, y_train)
 
 # Evaluate
-test = pd.read_csv("venv/data/set1_test.csv")
+test = pd.read_csv("venv/central_server/set1_test.csv")
 
 X_test = test.drop(columns=["cardio"])
 y_test = test["cardio"]
