@@ -1,6 +1,5 @@
 from fastapi import FastAPI, UploadFile, File
 import shutil
-from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
@@ -19,39 +18,29 @@ async def upload_model(file: UploadFile = File(...)):
 
     return {"message": f"{file.filename} uploaded successfully"}
 
-@app.get("/dashboard", response_class=HTMLResponse)
-def dashboard():
+from fastapi import FastAPI
+import requests
 
-    html = """
-    <html>
-    <head>
-        <title>Federated Learning Dashboard</title>
-    </head>
-    <body>
+app = FastAPI()
 
-    <h1>Federated Learning Cardiovascular Prediction</h1>
+HOSPITAL1_URL = "https://hospital1-production.up.railway.app/test_main_model"
+HOSPITAL2_URL = "https://hospital2-production.up.railway.app/test_main_model"
 
-    <h2>System Architecture</h2>
-    <p>Central Server: Render</p>
-    <p>Hospital Nodes: Railway</p>
 
-    <h2>Model Performance</h2>
+@app.get("/performance")
+def get_performance():
 
-    <ul>
-        <li>Main Model Accuracy: 0.73</li>
-        <li>Hospital 1 Model Accuracy: 0.75</li>
-        <li>Hospital 2 Model Accuracy: 0.76</li>
-        <li>Federated Model Accuracy: 0.78</li>
-    </ul>
+    try:
+        h1 = requests.get(HOSPITAL1_URL).json()
+    except:
+        h1 = {"accuracy": "offline"}
 
-    <h2>Federated Workflow</h2>
+    try:
+        h2 = requests.get(HOSPITAL2_URL).json()
+    except:
+        h2 = {"accuracy": "offline"}
 
-    <p>
-    Main Model → Hospital Training → Model Aggregation → Final Model
-    </p>
-
-    </body>
-    </html>
-    """
-
-    return html
+    return {
+        "hospital1_accuracy": h1["accuracy"],
+        "hospital2_accuracy": h2["accuracy"]
+    }
