@@ -13,8 +13,15 @@ def home():
 @app.get("/federated_performance")
 def federated_performance():
 
-    h1 = requests.get(HOSPITAL1_URL).json()
-    h2 = requests.get(HOSPITAL2_URL).json()
+    try:
+        h1 = requests.get(HOSPITAL1_URL, timeout=30).json()
+    except:
+        h1 = {"accuracy": "error", "test_samples": 0}
+
+    try:
+        h2 = requests.get(HOSPITAL2_URL, timeout=30).json()
+    except:
+        h2 = {"accuracy": "error", "test_samples": 0}
 
     return {
         "hospital1_accuracy": h1["accuracy"],
