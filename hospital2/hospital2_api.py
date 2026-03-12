@@ -21,8 +21,8 @@ def home():
 
 # keep the API but only if imports succeeded
 if _import_error is None:
-    MODEL_PATH = "main_model.pkl"
-    DATA_PATH = "set3_test.csv"
+    MODEL_PATH = "hospital2/main_model.pkl"
+    DATA_PATH = "hospital2/set3_test.csv"
 
 
     @app.get("/test_main_model")
