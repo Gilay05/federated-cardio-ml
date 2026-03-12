@@ -34,7 +34,7 @@ import pandas as pd
 import joblib
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
-MODEL_PATH = "main_model.pkl"
+MODEL_PATH = "central_server/main_model.pkl"
 DATA_PATH = "cardiovascular_disease_dataset.csv"
 
 @app.get("/baseline_metrics")
@@ -89,7 +89,7 @@ import shap
 @app.get("/run_shap_analysis")
 def run_shap():
 
-    model = joblib.load("main_model.pkl")
+    model = joblib.load(MODEL_PATH)
 
     df = pd.read_csv(DATA_PATH)
 
