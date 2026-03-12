@@ -1,1 +1,1 @@
-worker: python Hospital-1_Set_2.py
+web: uvicorn hospital1_server:app --host 0.0.0.0 --port $PORT
