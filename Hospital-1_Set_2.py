@@ -5,8 +5,8 @@ from sklearn.metrics import accuracy_score
 # Load main model
 model = joblib.load("venv/models/main_model.pkl")
 
-train = pd.read_csv("venv/hospital1/set2_train.csv")
-test = pd.read_csv("venv/hospital1/set2_test.csv")
+train = pd.read_csv("hospital1/set2_train.csv")
+test = pd.read_csv("hospital1/set2_test.csv")
 
 X_test = test.drop(columns=["cardio"])
 y_test = test["cardio"]
