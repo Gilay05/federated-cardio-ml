@@ -5,12 +5,12 @@ from sklearn.metrics import accuracy_score
 
 app = FastAPI()
 
-MODEL_PATH = "hospital2/main_model.pkl"
-DATA_PATH = "hospital2/set2_test.csv"
+MODEL_PATH = "main_model.pkl"
+DATA_PATH = "set3_test.csv"
 
 @app.get("/")
 def home():
-    return {"status": "Hospital 1 API running"}
+    return {"status": "Hospital 2 API running"}
 
 @app.get("/test_main_model")
 def test_model():
@@ -27,7 +27,7 @@ def test_model():
     acc = accuracy_score(y, preds)
 
     return {
-        "hospital": "Hospital 1",
+        "hospital": "Hospital 2",
         "test_samples": len(X),
         "accuracy": round(float(acc), 4)
     }

@@ -1,33 +1,39 @@
+# hospital1/hospital1_api.py
 from fastapi import FastAPI
-import pandas as pd
-import joblib
-from sklearn.metrics import accuracy_score
+import traceback
+
+_import_error = None
+try:
+    import pandas as pd
+    import joblib
+    from sklearn.metrics import accuracy_score
+except Exception:
+    _import_error = traceback.format_exc()
 
 app = FastAPI()
 
-MODEL_PATH = "hospital1/main_model.pkl"
-DATA_PATH = "hospital1/set2_test.csv"
-
 @app.get("/")
 def home():
+    # If import failed, return the traceback so we can see exactly why
+    if _import_error:
+        return {"status": "import_error", "trace": _import_error}
     return {"status": "Hospital 1 API running"}
 
-@app.get("/test_main_model")
-def test_model():
+# keep the API but only if imports succeeded
+if _import_error is None:
+    MODEL_PATH = "main_model.pkl"
+    DATA_PATH = "set2_test.csv"
 
-    model = joblib.load(MODEL_PATH)
-
-    df = pd.read_csv(DATA_PATH)
-
-    X = df.drop("cardio", axis=1)
-    y = df["cardio"]
-
-    preds = model.predict(X)
-
-    acc = accuracy_score(y, preds)
-
-    return {
-        "hospital": "Hospital 1",
-        "test_samples": len(X),
-        "accuracy": round(float(acc), 4)
-    }
+    @app.get("/test_main_model")
+    def test_model():
+        model = joblib.load(MODEL_PATH)
+        df = pd.read_csv(DATA_PATH)
+        X = df.drop("cardio", axis=1)
+        y = df["cardio"]
+        preds = model.predict(X)
+        acc = accuracy_score(y, preds)
+        return {
+            "hospital": "Hospital 1",
+            "test_samples": len(X),
+            "accuracy": round(float(acc), 4)
+        }
