@@ -154,7 +154,7 @@ def hospital2_logic():
             return {"decision": "stable_after_increment_retrained", "initial": r3000, "incremental": r3200, "final_full": full}
 
 # ----------------------------
-# Aggregate weights (real FL: download weights only & FedAvg)
+# Aggregate weights (download weights only & FedAvg)
 # ----------------------------
 @app.get("/aggregate_models")
 def aggregate_models():
