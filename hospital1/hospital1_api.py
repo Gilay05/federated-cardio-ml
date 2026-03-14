@@ -135,19 +135,12 @@ def get_weights():
     try:
         model = joblib.load(LOCAL_MODEL)
     except:
-        return {"error": "local model not trained yet"}
+        return {"error": "hospital1_v2 not found"}
 
-    weights = {
+    return {
         "coef": np.array(model.coef_).tolist(),
         "intercept": np.array(model.intercept_).tolist()
     }
-
-    response = requests.post(
-        f"{CENTRAL_SERVER}/receive_weights",
-        json=weights
-    )
-
-    return {"central_response": response.json()}
 
 
 # -------------------------
