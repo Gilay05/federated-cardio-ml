@@ -130,7 +130,7 @@ def train_local_model():
 # Send local model weights to central
 # -------------------------
 @app.get("/get_weights")
-def send_weights_to_central():
+def get_weights():
 
     try:
         model = joblib.load(LOCAL_MODEL)
