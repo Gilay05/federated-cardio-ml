@@ -129,7 +129,7 @@ def train_local_model():
 # -------------------------
 # Send local model weights to central
 # -------------------------
-@app.get("/send_weights_to_central")
+@app.get("/get_weights")
 def send_weights_to_central():
 
     try:
