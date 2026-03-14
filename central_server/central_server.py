@@ -9,6 +9,17 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 app = FastAPI(title="Central Federated Server")
 
+from fastapi.responses import FileResponse
+
+# Allow hospitals to download the base model
+@app.get("/get_main_model")
+def get_main_model():
+    return FileResponse(
+        MODEL_PATH,
+        media_type="application/octet-stream",
+        filename="main_model.pkl"
+    )
+
 # ----------------------------
 # Configure hospital base URLs (no trailing slash)
 # Replace these with YOUR deployed URLs
