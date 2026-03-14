@@ -27,6 +27,11 @@ def get_main_model():
 H1 = "https://web-production-a4fbb.up.railway.app"   # Hospital 1 base
 H2 = "https://web-production-5e22a.up.railway.app"   # Hospital 2 base
 
+# Local central paths (central_server folder is the working dir for this file on Render)
+MODEL_PATH = "central_server/main_model.pkl"                # main baseline model stored in central_server folder
+DATA_PATH = "cardiovascular_disease_dataset.csv"  # dataset at repo root
+MAIN_V2_PATH = "main_model_v2.pkl"
+
 # Endpoints on hospitals
 H1_TEST = f"{H1}/test_main_model"
 H2_TEST = f"{H2}/test_main_model"
@@ -39,10 +44,7 @@ H2_UPDATE = f"{H2}/update_global_model"
 H1_TEST_GLOBAL = f"{H1}/test_global_model"
 H2_TEST_GLOBAL = f"{H2}/test_global_model"
 
-# Local central paths (central_server folder is the working dir for this file on Render)
-MODEL_PATH = "central_server/main_model.pkl"                # main baseline model stored in central_server folder
-DATA_PATH = "cardiovascular_disease_dataset.csv"  # dataset at repo root
-MAIN_V2_PATH = "main_model_v2.pkl"
+
 
 # ----------------------------
 # Utility: safe metrics calculation
@@ -169,43 +171,71 @@ def hospital2_logic():
 # ----------------------------
 @app.get("/aggregate_models")
 def aggregate_models():
-    w1 = requests.get(H1_GET, timeout=30).json()
-    w2 = requests.get(H2_GET, timeout=30).json()
+
+    try:
+        w1 = requests.get(H1_GET, timeout=30).json()
+        w2 = requests.get(H2_GET, timeout=30).json()
+    except Exception as e:
+        return {"error": f"failed to contact hospitals: {str(e)}"}
 
     if "error" in w1 or "error" in w2:
-        return {"error": "failed to fetch weights", "w1": w1, "w2": w2}
+        return {
+            "error": "failed to fetch weights",
+            "hospital1": w1,
+            "hospital2": w2
+        }
 
-    coef1 = np.array(w1["coef"])
-    coef2 = np.array(w2["coef"])
-    int1 = np.array(w1["intercept"])
-    int2 = np.array(w2["intercept"])
+    try:
+        coef1 = np.array(w1["coef"])
+        coef2 = np.array(w2["coef"])
+        int1 = np.array(w1["intercept"])
+        int2 = np.array(w2["intercept"])
+    except Exception as e:
+        return {"error": f"invalid weight format: {str(e)}"}
 
-    avg_coef = (coef1 + coef2) / 2.0
-    avg_int = (int1 + int2) / 2.0
+    avg_coef = (coef1 + coef2) / 2
+    avg_int = (int1 + int2) / 2
 
-    model = joblib.load(MODEL_PATH)
+    try:
+        model = joblib.load(MODEL_PATH)
+    except Exception as e:
+        return {"error": f"failed loading base model: {str(e)}"}
+
     model.coef_ = avg_coef
     model.intercept_ = avg_int
 
     joblib.dump(model, MAIN_V2_PATH)
-    return {"status": "aggregation_complete", "model": MAIN_V2_PATH}
+
+    return {
+        "status": "aggregation_complete",
+        "saved_model": MAIN_V2_PATH
+    }
 
 # ----------------------------
 # Distribute the global model weights to hospitals
 # ----------------------------
+import os
+
 @app.get("/distribute_global_model")
 def distribute_global_model():
-    try:
-        model = joblib.load(MAIN_V2_PATH)
-    except Exception as e:
-        return {"error": f"main_model_v2 not found: {e}"}
 
-    payload = {"coef": np.array(model.coef_).tolist(), "intercept": np.array(model.intercept_).tolist()}
+    if not os.path.exists(MAIN_V2_PATH):
+        return {"error": "main_model_v2.pkl not found — run /aggregate_models first"}
 
-    res1 = requests.post(H1_UPDATE, json=payload, timeout=30).json()
-    res2 = requests.post(H2_UPDATE, json=payload, timeout=30).json()
+    model = joblib.load(MAIN_V2_PATH)
 
-    return {"hospital1_update": res1, "hospital2_update": res2}
+    payload = {
+        "coef": np.array(model.coef_).tolist(),
+        "intercept": np.array(model.intercept_).tolist()
+    }
+
+    res1 = requests.post(H1_UPDATE, json=payload).json()
+    res2 = requests.post(H2_UPDATE, json=payload).json()
+
+    return {
+        "hospital1_update": res1,
+        "hospital2_update": res2
+    }
 
 # ----------------------------
 # Test the distributed global model on both hospitals
