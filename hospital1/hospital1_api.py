@@ -2,44 +2,60 @@ from fastapi import FastAPI
 import pandas as pd
 import joblib
 import numpy as np
+import requests
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from typing import Dict
 
 app = FastAPI(title="Hospital 1 API")
 
-# File paths (these are relative to the hospital1 folder)
-BASE_MODEL = "hospital1/main_model.pkl"       # copy of central main model (baseline)
-TRAIN_DATA = "hospital1/set2_train.csv"       # local training data (12,500)
-TEST_DATA = "hospital1/set2_test.csv"         # local test data (3,000)
+# -------------------------
+# Central server location
+# -------------------------
+CENTRAL_SERVER = "https://federated-central-server.onrender.com"
+
+# Local data
+TRAIN_DATA = "hospital1/set2_train.csv"
+TEST_DATA = "hospital1/set2_test.csv"
+
+# Local model storage
+LOCAL_MODEL = "hospital1_v2.pkl"
+GLOBAL_MODEL = "global_model.pkl"
 
 # -------------------------
 # Utility: safe metrics
 # -------------------------
 def safe_metrics(model, X, y) -> Dict:
     preds = model.predict(X)
+
     out = {}
     try:
         out["accuracy"] = round(float(accuracy_score(y, preds)), 4)
-    except Exception:
+    except:
         out["accuracy"] = None
+
     try:
         out["precision"] = round(float(precision_score(y, preds)), 4)
-    except Exception:
+    except:
         out["precision"] = None
+
     try:
         out["recall"] = round(float(recall_score(y, preds)), 4)
-    except Exception:
+    except:
         out["recall"] = None
+
     try:
         out["f1"] = round(float(f1_score(y, preds)), 4)
-    except Exception:
+    except:
         out["f1"] = None
+
     try:
         out["roc_auc"] = round(float(roc_auc_score(y, preds)), 4)
-    except Exception:
+    except:
         out["roc_auc"] = None
+
     return out
+
 
 # -------------------------
 # Root
@@ -48,16 +64,33 @@ def safe_metrics(model, X, y) -> Dict:
 def home():
     return {"status": "Hospital 1 API running"}
 
+
 # -------------------------
-# Test baseline model on 'samples' rows from test set (default 1500)
-# Query parameter: ?samples=1500
+# Download base model from central server
+# -------------------------
+def download_main_model():
+
+    response = requests.get(f"{CENTRAL_SERVER}/get_main_model")
+
+    if response.status_code != 200:
+        raise Exception("Failed to download main model")
+
+    with open("main_model.pkl", "wb") as f:
+        f.write(response.content)
+
+    return joblib.load("main_model.pkl")
+
+
+# -------------------------
+# Test baseline model
 # -------------------------
 @app.get("/test_main_model")
 def test_main_model(samples: int = 1500):
+
     try:
-        model = joblib.load(BASE_MODEL)
+        model = download_main_model()
     except Exception as e:
-        return {"error": f"failed to load baseline model: {e}"}
+        return {"error": str(e)}
 
     df = pd.read_csv(TEST_DATA)
     df = df.head(min(samples, len(df)))
@@ -67,77 +100,95 @@ def test_main_model(samples: int = 1500):
 
     metrics = safe_metrics(model, X, y)
     metrics["samples"] = len(df)
+
     return metrics
 
+
 # -------------------------
-# Local retraining to produce hospital1_v2.pkl (uses full TRAIN_DATA)
-# Endpoint: /train_local_model
+# Train local model
 # -------------------------
 @app.get("/train_local_model")
 def train_local_model():
+
     df = pd.read_csv(TRAIN_DATA)
+
     X = df.drop(columns=["cardio"])
     y = df["cardio"].astype(int)
 
     model = LogisticRegression(max_iter=2000)
     model.fit(X, y)
 
-    joblib.dump(model, "hospital1_v2.pkl")
-    return {"status": "hospital1_v2 trained", "training_samples": len(df)}
-
-# -------------------------
-# Provide model weights to central server (weight-only exchange)
-# Endpoint: /get_weights
-# -------------------------
-@app.get("/get_weights")
-def get_weights():
-    try:
-        model = joblib.load("hospital1_v2.pkl")
-    except Exception as e:
-        return {"error": f"hospital1_v2 not found: {e}"}
+    joblib.dump(model, LOCAL_MODEL)
 
     return {
+        "status": "hospital1_v2 trained",
+        "training_samples": len(df)
+    }
+
+
+# -------------------------
+# Send local model weights to central
+# -------------------------
+@app.get("/send_weights_to_central")
+def send_weights_to_central():
+
+    try:
+        model = joblib.load(LOCAL_MODEL)
+    except:
+        return {"error": "local model not trained yet"}
+
+    weights = {
         "coef": np.array(model.coef_).tolist(),
         "intercept": np.array(model.intercept_).tolist()
     }
 
+    response = requests.post(
+        f"{CENTRAL_SERVER}/receive_weights",
+        json=weights
+    )
+
+    return {"central_response": response.json()}
+
+
 # -------------------------
-# Receive updated global model weights (central posts JSON payload)
-# Endpoint: /update_global_model  (POST JSON {"coef": [...], "intercept": [...]})
+# Receive updated global model
 # -------------------------
 @app.post("/update_global_model")
 def update_global_model(weights: Dict):
-    try:
-        model = joblib.load("hospital1_v2.pkl")
-    except Exception:
-        # If hospital1_v2 doesn't exist, create a fresh small model (fit on train) first
-        df = pd.read_csv(TRAIN_DATA)
-        X = df.drop(columns=["cardio"])
-        y = df["cardio"].astype(int)
-        model = LogisticRegression(max_iter=2000)
-        model.fit(X, y)
+
+    df = pd.read_csv(TRAIN_DATA)
+
+    X = df.drop(columns=["cardio"])
+    y = df["cardio"].astype(int)
+
+    model = LogisticRegression(max_iter=2000)
+    model.fit(X, y)
 
     model.coef_ = np.array(weights["coef"])
     model.intercept_ = np.array(weights["intercept"])
 
-    joblib.dump(model, "global_model.pkl")
+    joblib.dump(model, GLOBAL_MODEL)
+
     return {"status": "global_model_received"}
 
+
 # -------------------------
-# Test the received global model on the full test set (3,000)
-# Endpoint: /test_global_model
+# Test global model
 # -------------------------
 @app.get("/test_global_model")
 def test_global_model():
+
     try:
-        model = joblib.load("global_model.pkl")
-    except Exception as e:
-        return {"error": f"global_model not found: {e}"}
+        model = joblib.load(GLOBAL_MODEL)
+    except:
+        return {"error": "global model not found"}
 
     df = pd.read_csv(TEST_DATA)
+
     X = df.drop(columns=["cardio"])
     y = df["cardio"].astype(int)
 
     metrics = safe_metrics(model, X, y)
     metrics["samples"] = len(df)
+
     return metrics
