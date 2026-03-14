@@ -97,10 +97,21 @@ if st.button("Run Federated Learning Pipeline"):
 
         st.write("Decision:", h1["decision"])
 
-        df_h1 = pd.DataFrame(
-            [baseline, h1["initial"], h1["final_full"]],
-            index=["Baseline", "Initial Test", "Final Test"]
-        )
+        # Handle optional incremental test
+        h1_incremental = h1.get("incremental")
+
+        rows_h1 = [baseline, h1["initial"]]
+        labels_h1 = ["Baseline", "Initial Test"]
+
+        if h1_incremental:
+            rows_h1.append(h1_incremental)
+            labels_h1.append("Incremental Test (+200)")
+
+        rows_h1.append(h1["final_full"])
+        labels_h1.append("Final Test")
+
+        df_h1 = pd.DataFrame(rows_h1, index=labels_h1)
+
 
         st.dataframe(df_h1)
 
@@ -125,10 +136,20 @@ if st.button("Run Federated Learning Pipeline"):
 
         st.write("Decision:", h2["decision"])
 
-        df_h2 = pd.DataFrame(
-            [baseline, h2["initial"], h2["final_full"]],
-            index=["Baseline", "Initial Test", "Final Test"]
-        )
+        # Handle optional incremental test
+        h2_incremental = h2.get("incremental")
+
+        rows_h2 = [baseline, h2["initial"]]
+        labels_h2 = ["Baseline", "Initial Test"]
+
+        if h2_incremental:
+            rows_h2.append(h2_incremental)
+            labels_h2.append("Incremental Test (+200)")
+
+        rows_h2.append(h2["final_full"])
+        labels_h2.append("Final Test")
+
+        df_h2 = pd.DataFrame(rows_h2, index=labels_h2)
 
         st.dataframe(df_h2)
 
